@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useAuthStore } from "@/lib/store/use-auth-store";
 import { Button } from "@/components/ui/button";
-import { Search, Bell, Menu, User, LogOut, LayoutDashboard, Briefcase, PlusCircle, SearchIcon } from "lucide-react";
-import Image from "next/image";
+import { Search, Bell, Menu, User, LogOut } from "lucide-react";
 
 export function TopNav({ onOpenSidebar }: { onOpenSidebar?: () => void }) {
-  const { isLoggedIn, role, logout, login } = useAuthStore();
+  const { isLoggedIn, logout, login } = useAuthStore();
 
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-backdrop-filter:bg-background/60">

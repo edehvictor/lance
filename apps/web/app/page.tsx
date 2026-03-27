@@ -3,7 +3,6 @@
 import { useAuthStore } from "@/lib/store/use-auth-store";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Briefcase, Zap, ShieldCheck, Globe, Star, CheckCircle2 } from "lucide-react";
-import Image from "next/image";
 
 export default function Home() {
   const { isLoggedIn, role, login } = useAuthStore();
