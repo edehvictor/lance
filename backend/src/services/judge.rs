@@ -108,7 +108,7 @@ impl OpenClawClient {
                     anyhow::bail!("OpenClaw API returned error status: {}", res.status());
                 }
                 Err(e) => {
-                    anyhow::bail!("OpenClaw request failed after retries: {}", e);
+                    anyhow::bail!("OpenClaw request failed after retries: {e}");
                 }
             }
         }
@@ -204,7 +204,7 @@ impl JudgeService {
     /// Placeholder for fetching text content from IPFS.
     pub async fn fetch_ipfs_text(&self, cid: &str) -> Result<String> {
         tracing::debug!("Fetching IPFS content for CID: {}", cid);
-        Ok(format!("[Stub content for IPFS CID: {}]", cid))
+        Ok(format!("[Stub content for IPFS CID: {cid}]"))
     }
 
     /// Core entry point for triggering a dispute analysis from a pre-bundled CaseFile.

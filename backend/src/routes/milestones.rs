@@ -76,10 +76,6 @@ pub async fn release_milestone(
         ));
     }
 
-    // TODO: call Soroban escrow contract via stellar.rs service
-    // services::stellar::release_milestone(&job_id.to_string(), milestone.index).await?;
-    let tx_hash: Option<String> = None; // Placeholder for tx_hash from stellar.rs service
-
     let updated = sqlx::query_as::<_, Milestone>(
         r#"UPDATE milestones SET status = 'released', tx_hash = $1, released_at = CURRENT_TIMESTAMP
            WHERE id = $2
