@@ -1121,15 +1121,38 @@
               }
             ],
             "data": {
-              "vec": [
+              "map": [
                 {
-                  "u64": 1
+                  "key": {
+                    "symbol": "deliverable_hash"
+                  },
+                  "val": {
+                    "bytes": "516d44656c6976657261626c6548617368"
+                  }
                 },
                 {
-                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  "key": {
+                    "symbol": "freelancer"
+                  },
+                  "val": {
+                    "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
+                  }
                 },
                 {
-                  "u64": 0
+                  "key": {
+                    "symbol": "job_id"
+                  },
+                  "val": {
+                    "u64": 1
+                  }
+                },
+                {
+                  "key": {
+                    "symbol": "timestamp"
+                  },
+                  "val": {
+                    "u64": 0
+                  }
                 }
               ]
             }
