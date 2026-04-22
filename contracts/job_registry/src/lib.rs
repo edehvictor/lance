@@ -81,6 +81,19 @@ pub struct BidAcceptedEvent {
     pub timestamp: u64,
 }
 
+/// Event emitted when a deliverable is submitted.
+///
+/// This event is published to enable off-chain indexing and monitoring
+/// of all deliverable submissions on the platform. Includes timestamp for audit trails.
+#[contracttype]
+#[derive(Clone)]
+pub struct DeliverableSubmittedEvent {
+    pub job_id: u64,
+    pub freelancer: Address,
+    pub deliverable_hash: Bytes,
+    pub timestamp: u64,
+}
+
 #[contract]
 pub struct JobRegistryContract;
 
@@ -258,7 +271,37 @@ impl JobRegistryContract {
         Ok(())
     }
 
-    /// Freelancer submits deliverable IPFS hash.
+    /// Freelancer submits a deliverable for a job in progress.
+    ///
+    /// This is the core operation enabling freelancers to submit completed work
+    /// for jobs they have been assigned to. The deliverable is stored as an IPFS
+    /// hash to minimize on-chain storage while maintaining decentralized content
+    /// accessibility. Validation ensures:
+    /// 1. The freelancer is authenticated via Stellar signature
+    /// 2. The job exists and is in InProgress status
+    /// 3. The deliverable hash is not empty (content validation)
+    /// 4. The caller is the assigned freelancer for the job
+    ///
+    /// # Arguments
+    /// * `env` - The Soroban environment
+    /// * `job_id` - The unique identifier of the job
+    /// * `freelancer` - The address of the freelancer submitting the deliverable
+    /// * `hash` - The IPFS CID hash of the deliverable content
+    ///
+    /// # Returns
+    /// * `Ok(())` - If the deliverable is successfully submitted
+    /// * `Err(JobRegistryError::JobNotFound)` - If the job ID does not exist
+    /// * `Err(JobRegistryError::InvalidInput)` - If the deliverable hash is empty
+    /// * `Err(JobRegistryError::InvalidState)` - If the job status is not InProgress
+    /// * `Err(JobRegistryError::Unauthorized)` - If the caller is not the assigned freelancer
+    ///
+    /// # Security Considerations
+    /// * Requires freelancer authentication via `require_auth()` to prevent spoofing
+    /// * Validates job status to prevent premature or invalid submissions
+    /// * Prevents submission of invalid (empty) deliverable hashes
+    /// * Ensures only the assigned freelancer can submit deliverables
+    /// * Emits auditable event with timestamp for off-chain monitoring
+    /// * Stores deliverable hash persistently for escrow and dispute resolution
     pub fn submit_deliverable(
         env: Env,
         job_id: u64,
@@ -293,7 +336,12 @@ impl JobRegistryContract {
 
         env.events().publish(
             ("job_registry", "DeliverableSubmitted"),
-            (job_id, freelancer, env.ledger().timestamp()),
+            DeliverableSubmittedEvent {
+                job_id,
+                freelancer: freelancer.clone(),
+                deliverable_hash: hash.clone(),
+                timestamp: env.ledger().timestamp(),
+            },
         );
 
         Ok(())

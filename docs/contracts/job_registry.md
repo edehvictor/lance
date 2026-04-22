@@ -60,3 +60,31 @@ This implementation strengthens trustlessness by ensuring bid acceptance can onl
 ### Errors
 
 - `JobNotFound` (1): The specified job ID does not exist.
+## `submit_deliverable`
+
+### Purpose
+
+`submit_deliverable` is called by a freelancer to submit their completed work for a job that is in progress. The deliverable is stored as an IPFS hash, enabling decentralized content storage while maintaining on-chain auditability.
+
+### Behavior
+
+- Authenticates the caller with `freelancer.require_auth()`.
+- Validates that the deliverable hash is not empty to prevent invalid submissions.
+- Verifies the job exists and is currently in the `InProgress` state.
+- Confirms the caller is the assigned freelancer for the job.
+- Updates the job status to `DeliverableSubmitted`.
+- Stores the deliverable hash in persistent storage for later retrieval.
+- Emits a `DeliverableSubmitted` event with timestamp for on-chain auditing and off-chain indexing.
+
+### Errors
+
+`submit_deliverable` uses `JobRegistryError` to return structured error information:
+
+- `JobNotFound` (1): job does not exist.
+- `InvalidInput` (4): deliverable hash is empty.
+- `InvalidState` (5): job is not in `InProgress` status.
+- `Unauthorized` (3): caller is not the assigned freelancer for the job.
+
+### Notes
+
+This function is critical for the job completion workflow, enabling freelancers to submit their work while maintaining security through authentication and state validation. The IPFS hash storage minimizes on-chain data while preserving immutability and accessibility.
