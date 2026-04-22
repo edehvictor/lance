@@ -94,8 +94,7 @@ impl ReputationContract {
         let get_sym = Symbol::new(&env, "get_job");
         let args = soroban_sdk::vec![&env, job_id.into_val(&env)];
         let job: JobRecord = env
-            .invoke_contract::<Result<JobRecord, u32>>(&registry_addr, &get_sym, args)
-            .unwrap()
+            .invoke_contract::<Result<JobRecord, soroban_sdk::Error>>(&registry_addr, &get_sym, args)
             .unwrap();
 
         // verify job is completed (ratings only allowed after completion)
