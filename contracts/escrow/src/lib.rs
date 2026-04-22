@@ -75,6 +75,7 @@ pub enum EscrowError {
     JobNotFound = 5,
     InvalidState = 6,
     AmountMismatch = 7,
+    NoPendingMilestones = 8,
 }
 
 #[contracttype]
@@ -93,6 +94,21 @@ pub struct DepositEvent {
     pub job_id: u64,
     pub amount: i128,
     pub deposited_at: u64,
+}
+#[derive(Clone)]
+pub struct ReleaseMilestoneEvent {
+    pub job_id: u64,
+    pub milestone_index: u32,
+    pub amount: i128,
+    pub released_at: u64,
+}
+
+#[contracttype]
+#[derive(Clone)]
+pub struct OpenDisputeEvent {
+    pub job_id: u64,
+    pub initiator: Address,
+    pub opened_at: u64,
 }
 
 #[contract]
@@ -117,16 +133,13 @@ impl EscrowContract {
             .set(&DataKey::AgentJudge, &agent_judge);
 
         // Emit an initialization event for off-chain consumers and logging
-        let event = EscrowInitializedEvent {
-            admin: admin.clone(),
-            agent_judge: agent_judge.clone(),
-            initialized_at: env.ledger().timestamp(),
-        };
-        env.events().publish(("escrow", "Initialized"), event);
+        env.events().publish(
+            ("escrow", "Initialized"),
+            (admin.clone(), agent_judge.clone(), env.ledger().timestamp()),
+        );
 
         Ok(())
     }
-
     /// Admin can update the Agent Judge address.
     /// Admin can update the Agent Judge address.
     pub fn set_agent_judge(env: Env, new_agent_judge: Address) -> Result<(), EscrowError> {
@@ -147,12 +160,14 @@ impl EscrowContract {
             .set(&DataKey::AgentJudge, &new_agent_judge);
 
         // Emit an event for off-chain logging and debugging
-        let evt = AgentJudgeUpdatedEvent {
-            old_agent: admin.clone(),
-            new_agent: new_agent_judge.clone(),
-            updated_at: env.ledger().timestamp(),
-        };
-        env.events().publish(("escrow", "AgentJudgeUpdated"), evt);
+        env.events().publish(
+            ("escrow", "AgentJudgeUpdated"),
+            (
+                admin.clone(),
+                new_agent_judge.clone(),
+                env.ledger().timestamp(),
+            ),
+        );
 
         Ok(())
     }
@@ -256,32 +271,43 @@ impl EscrowContract {
     }
 
     /// Client approves a milestone -- releases next pending milestone to freelancer.
-    pub fn release_milestone(env: Env, job_id: u64, caller: Address) {
+    pub fn release_milestone(env: Env, job_id: u64, caller: Address) -> Result<(), EscrowError> {
         caller.require_auth();
 
         let key = DataKey::Job(job_id);
-        let mut job: EscrowJob = env.storage().persistent().get(&key).expect("job not found");
+        let mut job: EscrowJob = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(EscrowError::JobNotFound)?;
 
-        assert!(
-            job.status == EscrowStatus::Funded || job.status == EscrowStatus::WorkInProgress,
-            "job not in releaseable state"
-        );
-        assert!(caller == job.client, "only client can release");
+        if !(job.status == EscrowStatus::Funded || job.status == EscrowStatus::WorkInProgress) {
+            return Err(EscrowError::InvalidState);
+        }
 
-        let mut found_idx = None;
-        for i in 0..job.milestones.len() {
-            if job.milestones.get(i).unwrap().status == MilestoneStatus::Pending {
-                found_idx = Some(i);
+        if caller != job.client {
+            return Err(EscrowError::Unauthorized);
+        }
+
+        // Find next pending milestone
+        let mut found_idx: Option<u32> = None;
+        for idx in 0..job.milestones.len() {
+            if job.milestones.get(idx).unwrap().status == MilestoneStatus::Pending {
+                found_idx = Some(idx);
                 break;
             }
         }
 
-        let idx = found_idx.expect("all milestones already released");
+        let idx = match found_idx {
+            Some(i) => i,
+            None => return Err(EscrowError::NoPendingMilestones),
+        };
+
         let mut milestone = job.milestones.get(idx).unwrap();
         milestone.status = MilestoneStatus::Released;
         job.milestones.set(idx, milestone.clone());
 
-        job.released_amount += milestone.amount;
+        job.released_amount = job.released_amount.saturating_add(milestone.amount);
         job.status = EscrowStatus::WorkInProgress;
 
         let token_client = token::Client::new(&env, &job.token);
@@ -296,6 +322,14 @@ impl EscrowContract {
         }
 
         env.storage().persistent().set(&key, &job);
+
+        // Emit event
+        env.events().publish(
+            ("escrow", "ReleaseMilestone"),
+            (job_id, idx, milestone.amount, env.ledger().timestamp()),
+        );
+
+        Ok(())
     }
 
     /// Happy-path release for an explicit milestone index (0-based).
@@ -346,23 +380,33 @@ impl EscrowContract {
     }
 
     /// Either party opens a dispute, locking remaining funds.
-    pub fn open_dispute(env: Env, job_id: u64, caller: Address) {
+    pub fn open_dispute(env: Env, job_id: u64, caller: Address) -> Result<(), EscrowError> {
         caller.require_auth();
 
         let key = DataKey::Job(job_id);
-        let mut job: EscrowJob = env.storage().persistent().get(&key).expect("job not found");
+        let mut job: EscrowJob = env
+            .storage()
+            .persistent()
+            .get(&key)
+            .ok_or(EscrowError::JobNotFound)?;
 
-        assert!(
-            job.status == EscrowStatus::Funded || job.status == EscrowStatus::WorkInProgress,
-            "job not in active/funded state"
-        );
-        assert!(
-            caller == job.client || caller == job.freelancer,
-            "unauthorized"
-        );
+        if !(job.status == EscrowStatus::Funded || job.status == EscrowStatus::WorkInProgress) {
+            return Err(EscrowError::InvalidState);
+        }
+
+        if !(caller == job.client || caller == job.freelancer) {
+            return Err(EscrowError::Unauthorized);
+        }
 
         job.status = EscrowStatus::Disputed;
         env.storage().persistent().set(&key, &job);
+
+        env.events().publish(
+            ("escrow", "OpenDispute"),
+            (job_id, caller, env.ledger().timestamp()),
+        );
+
+        Ok(())
     }
 
     /// Either party formally raises a dispute with on-chain event emission.
@@ -412,15 +456,16 @@ impl EscrowContract {
             }
         }
 
-        let event_data = DisputeRaisedEvent {
-            job_id,
-            initiator: caller,
-            milestones_released: released_count,
-            milestones_total: job.milestones.len(),
-            raised_at: now,
-        };
-        env.events()
-            .publish(("escrow", "DisputeRaised"), event_data);
+        env.events().publish(
+            ("escrow", "DisputeRaised"),
+            (
+                job_id,
+                caller.clone(),
+                released_count,
+                job.milestones.len(),
+                now,
+            ),
+        );
     }
 
     /// Agent Judge resolves dispute -- splits funds by explicit amounts.
@@ -614,7 +659,8 @@ mod test {
     }
 
     #[test]
-    // AlreadyInitialized surfaces as host error code #1
+    // Initialization now returns EscrowError::AlreadyInitialized which surfaces
+    // as a host error with numeric code #1. Match that in the test.
     #[should_panic(expected = "Error(Contract, #1)")]
     fn test_double_init() {
         let env = Env::default();
@@ -630,7 +676,9 @@ mod test {
     }
 
     #[test]
-    #[should_panic(expected = "only client can release")]
+    // Unauthorized now returns EscrowError::Unauthorized which surfaces as
+    // host error code #3.
+    #[should_panic(expected = "Error(Contract, #3)")]
     fn test_unauthorized_release() {
         let env = Env::default();
         env.mock_all_auths();
@@ -653,6 +701,7 @@ mod test {
         cc.add_milestone(&1u64, &500i128);
         cc.deposit(&1u64, &1000i128);
 
+        // This should panic due to unauthorized release; test annotated with should_panic
         cc.release_milestone(&1u64, &rando);
     }
 
@@ -733,7 +782,8 @@ mod test {
     }
 
     #[test]
-    // Amount mismatch surfaces as host error code #7
+    // Deposit now returns EscrowError::AmountMismatch which surfaces as host
+    // error code #7.
     #[should_panic(expected = "Error(Contract, #7)")]
     fn test_deposit_with_wrong_total_panics() {
         let env = Env::default();
@@ -753,13 +803,12 @@ mod test {
         cc.initialize(&admin, &agent_judge);
         cc.create_job(&1u64, &client, &freelancer, &token_addr);
         cc.add_milestone(&1u64, &500i128);
-        // Should Err as 500 != 1000; the Soroban test client surfaces contract
-        // errors as host panics, so call directly and let the test expect a panic.
         cc.deposit(&1u64, &1000i128);
     }
 
     #[test]
-    // No milestones -> InvalidInput surfaces as host error code #4
+    // Deposit with no milestones returns EscrowError::InvalidInput -> host
+    // error code #4.
     #[should_panic(expected = "Error(Contract, #4)")]
     fn test_deposit_no_milestones_panics() {
         let env = Env::default();

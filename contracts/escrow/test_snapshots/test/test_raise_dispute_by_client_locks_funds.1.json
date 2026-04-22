@@ -1334,30 +1334,15 @@
               }
             ],
             "data": {
-              "map": [
+              "vec": [
                 {
-                  "key": {
-                    "symbol": "admin"
-                  },
-                  "val": {
-                    "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
-                  }
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD2KM"
                 },
                 {
-                  "key": {
-                    "symbol": "agent_judge"
-                  },
-                  "val": {
-                    "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
-                  }
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAFCT4"
                 },
                 {
-                  "key": {
-                    "symbol": "initialized_at"
-                  },
-                  "val": {
-                    "u64": 0
-                  }
+                  "u64": 0
                 }
               ]
             }
@@ -1867,46 +1852,21 @@
               }
             ],
             "data": {
-              "map": [
+              "vec": [
                 {
-                  "key": {
-                    "symbol": "initiator"
-                  },
-                  "val": {
-                    "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
-                  }
+                  "u64": 1
                 },
                 {
-                  "key": {
-                    "symbol": "job_id"
-                  },
-                  "val": {
-                    "u64": 1
-                  }
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
-                  "key": {
-                    "symbol": "milestones_released"
-                  },
-                  "val": {
-                    "u32": 0
-                  }
+                  "u32": 0
                 },
                 {
-                  "key": {
-                    "symbol": "milestones_total"
-                  },
-                  "val": {
-                    "u32": 3
-                  }
+                  "u32": 3
                 },
                 {
-                  "key": {
-                    "symbol": "raised_at"
-                  },
-                  "val": {
-                    "u64": 0
-                  }
+                  "u64": 0
                 }
               ]
             }
