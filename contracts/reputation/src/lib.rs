@@ -291,7 +291,8 @@ impl ReputationContract {
         let mut profile = storage::read_profile_or_default(&env, &address);
         let (new_score, total_jobs) = match role {
             Role::Client => {
-                profile.client_score = Self::clamp_score(profile.client_score.saturating_add(delta));
+                profile.client_score =
+                    Self::clamp_score(profile.client_score.saturating_add(delta));
                 profile.client_jobs = profile.client_jobs.saturating_add(1);
                 (profile.client_score, profile.client_jobs)
             }
@@ -436,9 +437,7 @@ mod test {
     #[contractimpl]
     impl MockJobRegistry {
         pub fn set_job(env: Env, job_id: u64, job: JobRecord) {
-            env.storage()
-                .persistent()
-                .set(&MockKey::Job(job_id), &job);
+            env.storage().persistent().set(&MockKey::Job(job_id), &job);
         }
 
         pub fn get_job(env: Env, _job_id: u64) -> Result<JobRecord, soroban_sdk::Error> {
