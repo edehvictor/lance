@@ -378,8 +378,8 @@ impl EscrowContract {
         let expires_at = now + 30 * 24 * 60 * 60;
 
         let job = EscrowJob {
-            client,
-            freelancer,
+            client: client.clone(),
+            freelancer: freelancer.clone(),
             token: token_addr,
             total_amount: 0,
             released_amount: 0,
