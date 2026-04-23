@@ -1,10 +1,9 @@
 #![no_std]
 
-use soroban_sdk::{
-    contract, contractclient, contracterror, contractimpl, contracttype, token, Address, Env,
-    Vec,
-};
 use soroban_sdk::BytesN;
+use soroban_sdk::{
+    contract, contractclient, contracterror, contractimpl, contracttype, token, Address, Env, Vec,
+};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -169,10 +168,9 @@ impl EscrowContract {
     const PERSISTENT_TTL_EXTEND_TO: u32 = 150_000;
 
     fn bump_instance_ttl(env: &Env) {
-        env.storage().instance().extend_ttl(
-            Self::INSTANCE_TTL_THRESHOLD,
-            Self::INSTANCE_TTL_EXTEND_TO,
-        );
+        env.storage()
+            .instance()
+            .extend_ttl(Self::INSTANCE_TTL_THRESHOLD, Self::INSTANCE_TTL_EXTEND_TO);
     }
 
     fn bump_job_ttl(env: &Env, key: &DataKey) {
@@ -187,7 +185,11 @@ impl EscrowContract {
 
     fn sync_dispute_to_job_registry(env: &Env, job_id: u64) -> Result<(), EscrowError> {
         Self::bump_instance_ttl(env);
-        let Some(registry_contract) = env.storage().instance().get::<_, Address>(&DataKey::JobRegistry) else {
+        let Some(registry_contract) = env
+            .storage()
+            .instance()
+            .get::<_, Address>(&DataKey::JobRegistry)
+        else {
             return Ok(());
         };
 
@@ -315,7 +317,8 @@ impl EscrowContract {
             return Err(EscrowError::UpgradeUnauthorized);
         }
 
-        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
         env.events().publish(
             ("escrow", "ContractUpgraded"),
             ContractUpgradedEvent {
@@ -713,11 +716,7 @@ impl EscrowContract {
 
     pub fn get_job(env: Env, job_id: u64) -> EscrowJob {
         let key = DataKey::Job(job_id);
-        let job = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .expect("job not found");
+        let job = env.storage().persistent().get(&key).expect("job not found");
         Self::bump_job_ttl(&env, &key);
         job
     }
@@ -725,11 +724,7 @@ impl EscrowContract {
     /// Retrieve the status of all milestones for a given job.
     pub fn get_milestone_status(env: Env, job_id: u64) -> Vec<MilestoneStatus> {
         let key = DataKey::Job(job_id);
-        let job: EscrowJob = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .expect("job not found");
+        let job: EscrowJob = env.storage().persistent().get(&key).expect("job not found");
         Self::bump_job_ttl(&env, &key);
         let mut statuses = Vec::new(&env);
         for m in job.milestones.iter() {

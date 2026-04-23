@@ -1,7 +1,7 @@
 #![no_std]
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Bytes, Env, Vec};
 use soroban_sdk::BytesN;
+use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Bytes, Env, Vec};
 
 #[contracttype]
 #[derive(Clone, Debug, PartialEq)]
@@ -186,7 +186,9 @@ impl JobRegistryContract {
             .get(&DataKey::UpgradeAdmin)
             .ok_or(JobRegistryError::UpgradeAdminNotSet)?;
 
-        env.storage().instance().set(&DataKey::UpgradeAdmin, &new_admin);
+        env.storage()
+            .instance()
+            .set(&DataKey::UpgradeAdmin, &new_admin);
         env.events().publish(
             ("job_registry", "UpgradeAdminSet"),
             UpgradeAdminSetEvent {
@@ -215,7 +217,8 @@ impl JobRegistryContract {
     ) -> Result<(), JobRegistryError> {
         Self::require_upgrade_admin(&env, &caller)?;
 
-        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
         env.events().publish(
             ("job_registry", "ContractUpgraded"),
             ContractUpgradedEvent {

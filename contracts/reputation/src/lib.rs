@@ -83,10 +83,9 @@ impl ReputationContract {
     const PERSISTENT_TTL_EXTEND_TO: u32 = 150_000;
 
     fn bump_instance_ttl(env: &Env) {
-        env.storage().instance().extend_ttl(
-            Self::INSTANCE_TTL_THRESHOLD,
-            Self::INSTANCE_TTL_EXTEND_TO,
-        );
+        env.storage()
+            .instance()
+            .extend_ttl(Self::INSTANCE_TTL_THRESHOLD, Self::INSTANCE_TTL_EXTEND_TO);
     }
 
     /// Upgrades the current contract WASM. Only callable by admin.
@@ -108,7 +107,8 @@ impl ReputationContract {
             return Err(ReputationError::Unauthorized);
         }
 
-        env.deployer().update_current_contract_wasm(new_wasm_hash.clone());
+        env.deployer()
+            .update_current_contract_wasm(new_wasm_hash.clone());
         env.events().publish(
             ("reputation", "ContractUpgraded"),
             ContractUpgradedEvent {
