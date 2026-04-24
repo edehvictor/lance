@@ -250,8 +250,9 @@ async function initializeWalletsKit(): Promise<void> {
       import("@creit.tech/stellar-wallets-kit/modules/xbull"),
     ]);
 
+  // Fixed: Forced cast to resolve version mismatch between stellar-sdk and wallets-kit
   StellarWalletsKit.init({
-    network: getNetworkPassphrase() as any,
+    network: getNetworkPassphrase() as unknown as any,
     selectedWalletId: "freighter",
     modules: [new FreighterModule(), new AlbedoModule(), new xBullModule()],
   });
