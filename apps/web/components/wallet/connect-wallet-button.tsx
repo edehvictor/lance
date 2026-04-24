@@ -4,6 +4,7 @@ import { AlertTriangle, Loader2, Wallet, WifiOff, Shield, RefreshCw } from "luci
 import { useWalletSession } from "@/hooks/use-wallet-session";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { WalletErrorBanner } from "./wallet-error-display";
 
 interface ConnectWalletButtonProps {
   className?: string;
@@ -81,6 +82,9 @@ export function ConnectWalletButton({ className }: ConnectWalletButtonProps) {
             <p className="text-[10px] text-zinc-500 text-right responsive-text-xs max-w-[200px]">
               Wallet: {walletNetwork} | App: {appNetwork}
             </p>
+            <p className="text-[9px] text-amber-500 text-right responsive-text-xs max-w-[200px]">
+              Please switch your wallet network to match
+            </p>
           </div>
         )}
 
@@ -113,19 +117,11 @@ export function ConnectWalletButton({ className }: ConnectWalletButtonProps) {
   return (
     <div className={cn("flex flex-col items-end gap-2 responsive-gap", className)}>
       {error && (
-        <div className="flex flex-col gap-1">
-          <p
-            role="alert"
-            aria-live="assertive"
-            className="flex items-center gap-1 rounded-[12px] bg-red-500/10 px-2.5 py-0.5 text-[11px] font-medium text-red-400 responsive-text-xs"
-          >
-            <AlertTriangle className="h-3 w-3 animate-pulse" aria-hidden="true" />
-            Connection failed
-          </p>
-          <p className="text-[10px] text-zinc-500 text-right max-w-48 responsive-text-xs">
-            {error}
-          </p>
-        </div>
+        <WalletErrorBanner 
+          error={error} 
+          onRetry={() => void connect()}
+          className="w-full max-w-xs"
+        />
       )}
 
       <Button
