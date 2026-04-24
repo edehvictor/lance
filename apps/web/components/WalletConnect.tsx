@@ -1,18 +1,10 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
 import { useWallet } from "@/hooks/use-wallet";
 import { Wallet, LogOut, CheckCircle2 } from "lucide-react";
 
 export function WalletConnect() {
   const { address, network, isConnecting, connect, disconnect, setNetwork } = useWallet();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
 
   const truncateAddress = (addr: string) =>
     `${addr.slice(0, 6)}...${addr.slice(-4)}`;
@@ -28,7 +20,7 @@ export function WalletConnect() {
           </h2>
           {address && (
             <div className="flex items-center gap-2 px-3 py-1 bg-zinc-800 rounded-full border border-zinc-700">
-              <span className={`w-2 h-2 rounded-full ${network === 'MAINNET' ? 'bg-indigo-500' : 'bg-zinc-400'}`} />
+              <span className={`w-2 h-2 rounded-full ${network === "MAINNET" ? "bg-indigo-500" : "bg-zinc-400"}`} />
               <span className="text-xs text-zinc-300 font-medium">
                 {network}
               </span>
@@ -75,22 +67,22 @@ export function WalletConnect() {
                 <label className="text-xs text-zinc-400 font-medium">Network Settings</label>
                 <div className="flex bg-zinc-800 rounded-xl p-1 border border-zinc-700">
                   <button
-                    onClick={() => setNetwork('TESTNET')}
+                    onClick={() => setNetwork("TESTNET")}
                     className={`flex-1 text-xs py-2 px-3 rounded-lg font-medium transition-all duration-200 ${
-                      network === 'TESTNET'
-                        ? 'bg-zinc-700 text-zinc-100 shadow-sm'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                      network === "TESTNET"
+                        ? "bg-zinc-700 text-zinc-100 shadow-sm"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
                     }`}
                     aria-label="Switch to Testnet"
                   >
                     Testnet
                   </button>
                   <button
-                    onClick={() => setNetwork('MAINNET')}
+                    onClick={() => setNetwork("MAINNET")}
                     className={`flex-1 text-xs py-2 px-3 rounded-lg font-medium transition-all duration-200 ${
-                      network === 'MAINNET'
-                        ? 'bg-indigo-500/10 text-indigo-400 shadow-sm border border-indigo-500/20'
-                        : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50'
+                      network === "MAINNET"
+                        ? "bg-indigo-500/10 text-indigo-400 shadow-sm border border-indigo-500/20"
+                        : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800/50"
                     }`}
                     aria-label="Switch to Mainnet"
                   >
