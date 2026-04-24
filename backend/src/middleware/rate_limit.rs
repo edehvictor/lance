@@ -16,7 +16,6 @@ use std::{
     num::NonZeroU32,
     sync::Arc,
     task::{Context, Poll},
-    time::Duration,
 };
 
 use axum::{
@@ -27,13 +26,7 @@ use axum::{
     Json,
 };
 use futures_util::future::BoxFuture;
-use governor::{
-    clock::DefaultClock,
-    middleware::NoOpMiddleware,
-    state::{InMemoryState, NotKeyed},
-    Quota, RateLimiter,
-};
-use governor::{state::keyed::DefaultKeyedStateStore, DefaultKeyedRateLimiter};
+use governor::{clock::DefaultClock, DefaultKeyedRateLimiter, Quota};
 use serde_json::json;
 use tower::{Layer, Service};
 
@@ -134,7 +127,6 @@ where
                     let mut resp = Response::builder()
                         .status(StatusCode::TOO_MANY_REQUESTS)
                         .header("Retry-After", retry_after.to_string())
-                        .header("X-RateLimit-Limit", limiter.quota().burst_size().get())
                         .body(Body::empty())
                         .unwrap();
 
