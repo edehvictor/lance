@@ -5,6 +5,7 @@ import { categorizeWalletError } from "./wallet-errors";
 let kit: StellarWalletsKit | null = null;
 
 export type StellarNetwork = Networks.TESTNET | Networks.PUBLIC;
+export { Networks };
 
 export const APP_STELLAR_NETWORK: StellarNetwork =
   (process.env.NEXT_PUBLIC_STELLAR_NETWORK as StellarNetwork) ?? Networks.TESTNET;
