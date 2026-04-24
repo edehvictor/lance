@@ -1,13 +1,11 @@
 use crate::{
     db::AppState,
-    error::{AppError, Result},
+    error::Result,
 };
 use axum::{
-    extract::State,
     routing::{get, post},
     Json, Router,
 };
-use ed25519_dalek::{Signature, Verifier, VerifyingKey};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
@@ -29,6 +27,7 @@ async fn get_nonce() -> Result<Json<NonceResponse>> {
 }
 
 #[derive(Deserialize)]
+#[allow(dead_code)]
 struct VerifyRequest {
     address: String,
     message: String,
@@ -41,7 +40,7 @@ struct VerifyResponse {
     success: bool,
 }
 
-async fn verify_signature(Json(req): Json<VerifyRequest>) -> Result<Json<VerifyResponse>> {
+async fn verify_signature(Json(_req): Json<VerifyRequest>) -> Result<Json<VerifyResponse>> {
     // 1. Decode address (Stellar G... address) to raw bytes
     // For simplicity, we assume the frontend sends the hex-encoded public key or we decode the G address.
     // In Stellar, the public key is encoded in the G address (StrKey).
