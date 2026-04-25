@@ -10,6 +10,7 @@ pub mod milestones;
 pub mod uploads;
 pub mod users;
 pub mod verdicts;
+pub mod activity;
 
 use crate::db::AppState;
 use axum::{routing::get, Router};
@@ -27,6 +28,7 @@ pub fn api_router() -> Router<AppState> {
             "/v1",
             Router::new()
                 .nest("/jobs", jobs::router())
+                .nest("/activity", activity::router())
                 .nest("/disputes", disputes::router())
                 .nest("/appeals", appeals::router())
                 .nest("/users", users::router())
