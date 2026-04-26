@@ -26,15 +26,14 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useIndexerStatus } from "@/hooks/use-indexer-status";
 
-// Mock data for the chart animations since we don't have historical metrics in the API yet
 const generateInitialData = () => {
   const data = [];
   const now = new Date();
   for (let i = 20; i >= 0; i--) {
     data.push({
       time: new Date(now.getTime() - i * 5000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      throughput: Math.floor(Math.random() * 5) + 2,
-      latency: Math.floor(Math.random() * 200) + 150,
+      throughput: 0,
+      latency: 0,
     });
   }
   return data;
@@ -68,14 +67,18 @@ export default function MonitoringDashboard() {
       setChartData(prev => {
         const newData = [...prev.slice(1), {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          throughput: status.in_sync ? 1 : 0, 
-          latency: status.ledger_lag * 100, 
+          throughput: status.last_batch_rate_per_second,
+          latency: status.last_rpc_latency_ms || status.last_loop_duration_ms,
         }];
         return newData;
       });
 
       if (status.ledger_lag > status.max_allowed_lag) {
         addLog(`System lagging behind by ${status.ledger_lag} ledgers`, 'warn');
+      }
+
+      if (status.rpc_retry_count > 0) {
+        addLog(`RPC retries observed: ${status.rpc_retry_count}`, 'info');
       }
     }, 0);
 
@@ -148,8 +151,8 @@ export default function MonitoringDashboard() {
         />
         <StatCard 
           title="REFRESH_RATE" 
-          value="5000ms" 
-          subValue="AUTO_POLLING"
+          value={`${status?.last_rpc_latency_ms ?? 0}ms`}
+          subValue="LAST_RPC_LATENCY"
           icon={<Clock className="text-zinc-500" />}
         />
       </div>
@@ -186,7 +189,7 @@ export default function MonitoringDashboard() {
                     fontSize={10} 
                     tickLine={false} 
                     axisLine={false} 
-                    tickFormatter={(v) => `${v} tx`}
+                    tickFormatter={(v) => `${v} eps`}
                   />
                   <Tooltip 
                     contentStyle={{ backgroundColor: '#09090b', borderColor: '#27272a', color: '#fff', fontSize: '12px' }}
@@ -223,8 +226,8 @@ export default function MonitoringDashboard() {
                   <TableRow label="RPC_ENDPOINT" value={status?.rpc.url || "NULL"} id="rpc_v0" />
                   <TableRow label="RPC_HEALTH" value={status?.rpc.reachable ? "REACHABLE" : "UNREACHABLE"} id="rpc_h" />
                   <TableRow label="MAX_LAG_LIMIT" value={`${status?.max_allowed_lag} ledgers`} id="cfg_0" />
-                  <TableRow label="CHECKPOINT_HASH" value="0x8f2e...9a12" id="db_ptr" />
-                  <TableRow label="UPTIME" value="14d 04h 22m" id="sys_up" />
+                  <TableRow label="LAST_BATCH_EVENTS" value={`${status?.last_batch_events_processed ?? 0}`} id="evt_rt" />
+                  <TableRow label="RPC_RETRIES" value={`${status?.rpc_retry_count ?? 0}`} id="rpc_rt" />
                 </tbody>
               </table>
             </CardContent>

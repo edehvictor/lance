@@ -49,14 +49,18 @@ export type PipelineStep =
   | "error";
 
 export interface SimulationLog {
-  /** Raw simulation response from the RPC */
-  raw: Api.SimulateTransactionResponse;
+  /** Raw simulation response from the RPC (dev only) */
+  raw?: Api.SimulateTransactionResponse;
+  /** Classic transaction fee in stroops */
+  baseFee: string;
+  /** Soroban resource fee in stroops */
+  resourceFee: string;
+  /** Estimated total fee after simulation assembly */
+  estimatedTotalFee: string;
   /** CPU instructions consumed */
   cpuInsns: string;
   /** Memory bytes consumed */
   memBytes: string;
-  /** Minimum resource fee in stroops */
-  minResourceFee: string;
   /** Ledger reads/writes */
   readBytes: number;
   writeBytes: number;
@@ -69,7 +73,7 @@ export interface PipelineResult {
   unsignedXdr?: string;
   /** Signed XDR (dev only) */
   signedXdr?: string;
-  /** Simulation diagnostics (dev only) */
+  /** Simulation diagnostics */
   simulationLog?: SimulationLog;
 }
 
@@ -77,7 +81,7 @@ export interface PipelineProgressEvent {
   step: PipelineStep;
   /** Populated once the tx is submitted */
   txHash?: string;
-  /** Populated after simulation (dev only) */
+  /** Populated after simulation */
   simulationLog?: SimulationLog;
   /** Populated after build (dev only) */
   unsignedXdr?: string;
@@ -108,7 +112,23 @@ function getRpc(): SorobanServer {
   return new SorobanServer(RPC_URL);
 }
 
-function extractSimulationLog(sim: Api.SimulateTransactionResponse): SimulationLog {
+function devLog(label: string, payload: unknown): void {
+  if (!IS_DEV) return;
+  console.debug(`[soroban-pipeline][${label}]`, payload);
+}
+
+function extractTransactionFee(tx: Transaction): string {
+  const fee = (tx as unknown as { fee?: string | number }).fee;
+  if (typeof fee === "number") return String(fee);
+  if (typeof fee === "string") return fee;
+  return String(BASE_FEE);
+}
+
+function extractSimulationLog(
+  sim: Api.SimulateTransactionResponse,
+  unsignedTx: Transaction,
+  preparedTx: Transaction,
+): SimulationLog {
   // SimulateTransactionSuccessResponse carries transactionData (SorobanDataBuilder)
   // and minResourceFee. The cost field is not in the parsed type but may appear
   // on the raw response — we access it defensively.
@@ -124,10 +144,12 @@ function extractSimulationLog(sim: Api.SimulateTransactionResponse): SimulationL
       : null;
 
   return {
-    raw: sim,
+    raw: IS_DEV ? sim : undefined,
+    baseFee: extractTransactionFee(unsignedTx),
+    resourceFee: minFee,
+    estimatedTotalFee: extractTransactionFee(preparedTx),
     cpuInsns: cost?.cpuInsns ?? "0",
     memBytes: cost?.memBytes ?? "0",
-    minResourceFee: minFee,
     // SorobanDataBuilder exposes readBytes/writeBytes as numbers
     readBytes: (transactionData as { readBytes?: number } | null)?.readBytes ?? 0,
     writeBytes: (transactionData as { writeBytes?: number } | null)?.writeBytes ?? 0,
@@ -229,6 +251,7 @@ async function runPipeline(params: RunPipelineParams): Promise<PipelineResult> {
     .build();
 
   const unsignedXdr = IS_DEV ? unsignedTx.toXDR() : undefined;
+  devLog("build", { method, unsignedXdr });
   emit("building", { unsignedXdr, message: "Transaction built." });
 
   // ── Step 2: Simulate ───────────────────────────────────────────────────────
@@ -240,11 +263,11 @@ async function runPipeline(params: RunPipelineParams): Promise<PipelineResult> {
     throw new Error(`Simulation failed: ${simResult.error}`);
   }
 
-  const simulationLog = IS_DEV ? extractSimulationLog(simResult) : undefined;
-
   // prepareTransaction assembles auth entries, footprint, and resource limits
   // from the simulation result into a ready-to-sign transaction.
   const preparedTx = await rpc.prepareTransaction(unsignedTx);
+  const simulationLog = extractSimulationLog(simResult, unsignedTx, preparedTx);
+  devLog("simulate", simulationLog);
 
   emit("simulating", {
     simulationLog,
@@ -255,7 +278,9 @@ async function runPipeline(params: RunPipelineParams): Promise<PipelineResult> {
   emit("signing");
 
   const preparedXdr = preparedTx.toXDR();
+  devLog("prepared-xdr", preparedXdr);
   const signedXdr = await signTransaction(preparedXdr);
+  devLog("signed-xdr", IS_DEV ? signedXdr : "[redacted]");
 
   emit("signing", {
     signedXdr: IS_DEV ? signedXdr : undefined,

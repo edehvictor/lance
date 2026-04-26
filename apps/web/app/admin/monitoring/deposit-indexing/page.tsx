@@ -23,15 +23,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { useIndexerStatus } from "@/hooks/use-indexer-status";
 
-// Simulation for historical metrics since we don't have a time-series DB yet
 const generateInitialData = () => {
   const data = [];
   const now = new Date();
   for (let i = 20; i >= 0; i--) {
     data.push({
       time: new Date(now.getTime() - i * 5000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-      throughput: Math.floor(Math.random() * 3) + 1,
-      latency: Math.floor(Math.random() * 150) + 50,
+      throughput: 0,
+      latency: 0,
     });
   }
   return data;
@@ -63,14 +62,18 @@ export default function DepositMonitoringDashboard() {
       setChartData(prev => {
         const newData = [...prev.slice(1), {
           time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
-          throughput: status.total_events_processed % 5 + 1, // simulated throughput variation
-          latency: status.last_loop_duration_ms || 42, 
+          throughput: status.last_batch_rate_per_second,
+          latency: status.last_rpc_latency_ms || status.last_loop_duration_ms,
         }];
         return newData;
       });
 
       if (status.last_loop_duration_ms > 1000) {
         addLog(`High indexing latency detected: ${status.last_loop_duration_ms}ms`, 'warn');
+      }
+
+      if (status.rpc_retry_count > 0) {
+        addLog(`RPC retry pressure detected: ${status.rpc_retry_count}`, 'warn');
       }
     }, 0);
 
@@ -149,7 +152,7 @@ export default function DepositMonitoringDashboard() {
         <MetricItem 
           label="Processed_Events" 
           value={status?.total_events_processed?.toLocaleString() || "0"} 
-          subValue="Cumulative_Lifetime"
+          subValue={`Last batch: ${status?.last_batch_events_processed ?? 0}`}
           icon={<ShieldCheck className="h-3 w-3" />}
         />
         <MetricItem 
